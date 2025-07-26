@@ -5,8 +5,12 @@ import numpy as np
 def check_valid_board(board_arr: np.ndarray) -> bool:
     """
     Checks if the board is a valid Connect 4 board.
-    :param board_arr: np array of the board
-    :return: True if valid, False otherwise
+
+    Args:
+        board_arr (np.ndarray): NumPy array representing the board.
+
+    Returns:
+        bool: True if the board is valid, False otherwise.
     """
 
     # Check if sum board pieces add up to 0 or 1
@@ -14,16 +18,16 @@ def check_valid_board(board_arr: np.ndarray) -> bool:
         return False
     
     # Check there are no floating pieces
+    if not check_floating_pieces(board_arr):
+        return False
 
 def check_floating_pieces(board_arr: np.ndarray) -> bool:
     """
-    Checks an M x N NumPy array to ensure there are no 'floating zeros'.
-
     A floating zero is a 0 that has a non-zero number in the cell
     directly above it. This function works for any array with 2 or more rows.
 
     Args:
-        board (np.ndarray): An M x N NumPy array.
+        board (np.ndarray): An 6 x 7 NumPy array.
 
     Returns:
         bool: True if the board state is valid (no floating zeros), False otherwise.
