@@ -178,6 +178,18 @@ class MCTSTree:
         elif result == -self.player:
             self.node_data[path[1::2], self.WINS_COL] += 1
     
+    def to_pandas(self):
+        """
+        Convert the node data to a pandas DataFrame for easier analysis.
+        
+        Returns:
+            pd.DataFrame: DataFrame representation of the tree node data
+        """
+        import pandas as pd
+        columns = [
+            "parent_idx", "action_col", "n_visits", "wins", "prior", "expanded"
+        ]
+        return pd.DataFrame(self.node_data, columns=columns)
 
             
 # initial_board = np.zeros((6,7))
