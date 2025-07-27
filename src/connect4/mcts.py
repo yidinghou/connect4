@@ -70,17 +70,17 @@ class MCTSTree:
         current_player = self.player
         current_node = node_idx
         current_board = node_board.copy()
-        path_with_players = [(current_node, -1 * current_player)]  # (node, player_to_move)
+        path = [current_node]  # (node, player_to_move)
 
         # Keep traversing until we find a leaf
         while self.node_data[current_node, self.EXPANDED_COL] == 1:
             current_node, current_board, current_player = (
                 self._traverse_one_step(current_node, current_board, current_player)
             )
-            path_with_players.append((current_node, -1 *current_player))
+            path.append(current_node)
 
 
-        return current_node, current_board, path_with_players
+        return current_node, current_board, path
 
     def _traverse_one_step(self, node_idx, board_state, player):
         """
@@ -158,7 +158,7 @@ class MCTSTree:
         self.node_count += 1
         return new_node_idx
         
-    def backpropagate(self, path_with_players, result):
+    def backpropagate(self, path, result):
         """
         Backpropagate the result through the path using forward iteration.
         
@@ -168,8 +168,8 @@ class MCTSTree:
         """
          
         # path is the first indexed element of the path_with_players list:
-        path, players = map(list, zip(*path_with_players))
 
+        self.node_data[path, self.N_VISITS_COL] += 1
         if result == 0:
             self.node_data[path, self.WINS_COL] += 0.5
         elif result == self.player:
