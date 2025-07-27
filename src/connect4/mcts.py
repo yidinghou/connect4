@@ -204,6 +204,20 @@ class MCTSTree:
         ]
         return pd.DataFrame(self.node_data, columns=columns)
 
-            
+    def _get_child(self):
+        child = self.node_data[self.node_data[:, self.PARENT_COL] == 0]
+        child = child[child[:, self.N_VISITS_COL] > 0]
+        return child
+
+    def _get_value(self):
+        root_stats = self.node_data[0,:]
+        return root_stats[self.WINS_COL] / root_stats[self.N_VISITS_COL]
+    
+    def get_training_sample(self):
+        value = self._get_value()
+        child = self._get_child()
+        visits = child[:, self.N_VISITS_COL] / sum(child[:, self.N_VISITS_COL])
+        return value, visits
+
 # initial_board = np.zeros((6,7))
 # tree = MCTSTree(initial_board)
