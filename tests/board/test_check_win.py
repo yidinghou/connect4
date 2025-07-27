@@ -69,6 +69,9 @@ def test_boards_with_floating_pieces(board_fixture):
     result = check_win(board_fixture)
     assert result is False
 
+    result = check_win(board_fixture*-1)
+    assert result is False
+
 #endregion
 
 #region Win Tests
@@ -168,5 +171,8 @@ def test_diagonal_wins(board):
     result = check_win(board)
     assert result is True, f"Expected win for diagonal board:\n{board}"
 
-#endRegion
+    result = check_win(board*-1)  # Check for player -1
+    assert result is True, f"Expected win for diagonal board:\n{board}"
+
+#endregion
 
