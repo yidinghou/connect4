@@ -20,6 +20,8 @@ def check_valid_board(board_arr: np.ndarray) -> bool:
     if not check_floating_pieces(board_arr):
         return False
 
+    return True
+
 def check_floating_pieces(board_arr: np.ndarray) -> bool:
     """
     A floating zero is a 0 that has a non-zero number in the cell
