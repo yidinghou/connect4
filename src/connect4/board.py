@@ -154,10 +154,12 @@ def add_move(board_arr, player: int, loc: Tuple[int, int]) -> None:
         loc (Tuple[int, int]): The (row, col) position for the move.
 
     Returns:
-        None
+        new_board (np.ndarray): A new board array with the move added.
     """
+    new_board = board_arr.copy()
     row, col = loc
-    board_arr[row, col] = player
+    new_board[row, col] = player
+    return new_board
 
 def is_full(board_arr: np.ndarray) -> bool:
     return np.sum(board_arr == 0) == 0  # no empty spots left
