@@ -174,9 +174,9 @@ class MCTSTree:
             self.node_data[path, self.WINS_COL] += 0.5
         elif result == self.player:
             # only update even indexed nodes
-            self.node_data[path[::2], self.WINS_COL] += 1
-        elif result == -self.player:
             self.node_data[path[1::2], self.WINS_COL] += 1
+        elif result == -self.player:
+            self.node_data[path[::2], self.WINS_COL] += 1
     
     def to_pandas(self):
         """
