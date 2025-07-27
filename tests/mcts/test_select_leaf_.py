@@ -14,7 +14,7 @@ def test_select_leaf_initial():
     tree = MCTSTree(initial_board)
 
     # Select leaf from the initial state
-    leaf_node, leaf_board = tree.select_leaf(0, initial_board)
+    leaf_node, leaf_board, _= tree.select_leaf(0, initial_board)
     assert leaf_node == 0
     assert np.array_equal(leaf_board, initial_board)
     assert tree.node_data[0, tree.PARENT_COL] == -1
@@ -38,11 +38,13 @@ def test_select_mock_expansion():
 
     assert tree.node_count == pre_count + 1
 
-    leaf_node, leaf_board = tree.select_leaf(0, initial_board)
+    leaf_node, leaf_board, path = tree.select_leaf(0, initial_board)
     assert leaf_node == 1  # The new node created
 
     expected_board = board.add_move(initial_board, 1, (5, sample_col))
     assert np.array_equal(leaf_board, expected_board)
+
+    assert path == [0, 1]
 
 def test_expand():
     initial_board = np.zeros((6,7))
@@ -60,3 +62,23 @@ def test_expand():
 
     node_data_head = tree.node_data[:8, :]
     assert np.array_equal(node_data_head, expected)
+
+
+def test_backpropagation():
+    initial_board = np.zeros((6, 7), dtype=int)  # Empty board
+    tree = MCTSTree(initial_board)
+
+    sample_col = 1
+    tree._create_new_node(0, action_col=sample_col)
+    tree.node_data[0, tree.EXPANDED_COL] = 1
+    leaf_node, leaf_board, path_with_players = tree.select_leaf(0, initial_board)
+
+    tree.backpropagate(path_with_players, 1)
+
+    nodes_df = tree.to_pandas() 
+    assert nodes_df.loc[0, "n_visits"] == 1
+    assert nodes_df.loc[0, "wins"] == 0
+
+    tree.backpropagate(path_with_players, -1)
+    assert nodes_df.loc[0, "n_visits"] == 2
+    assert nodes_df.loc[0, "wins"] == 1
