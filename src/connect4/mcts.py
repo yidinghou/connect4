@@ -20,7 +20,7 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
         legal_moves = board.get_legal_moves(board_arr)
         col, row = random.choice(list(legal_moves.items()))
 
-        board.add_move(board_arr, player=player, loc=(row, col))
+        board_arr = board.add_move(board_arr, player=player, loc=(row, col))
         if debug:
             print(board_arr)
             print(f"Player {player} added move at ({row}, {col})")
