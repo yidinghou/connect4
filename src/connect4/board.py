@@ -118,3 +118,25 @@ def check_incremental_win(board_arr: np.ndarray, row: int, col: int, player: int
         return True
     
     return False  # No win found in the local region
+
+
+def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]:
+    """
+    Returns a dictionary of legal moves for a Connect 4 board.
+    The key is the column index, and the value is the row index of the next available spot.
+
+    Args:
+        board_arr (np.ndarray): The input board state.
+
+    Returns:
+        dict[int, int]: A dictionary of legal moves. Empty if no moves are available.
+  
+    """
+    # Find the first empty row in each column
+    legal_moves = {}
+    for col in range(7):
+        empty_rows = np.where(board_arr[:, col] == 0)[0]
+        if empty_rows.size > 0:
+            legal_moves[col] = int(empty_rows[-1])  # Get the lowest empty row
+
+    return legal_moves
