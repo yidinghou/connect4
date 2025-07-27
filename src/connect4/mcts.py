@@ -35,12 +35,12 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     return result
 
 class MCTSTree:
-    def __init__(self, root_board):
+    def __init__(self, root_board, iterations=10):
         self.root_board = root_board
         self.player = 1  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
         self.node_data = np.zeros(
-            (100, 6), dtype=int
+            (iterations, 6), dtype=int
         )  # Initial size, can be resized later
 
         # 6 data elements: parent_idx, action_idx, n_visits, wins, prior, expanded
@@ -158,7 +158,7 @@ class MCTSTree:
         self.node_count += 1
         return new_node_idx
         
-    def backpropagate(self, path, result):
+    def backpropagate(self, path_with_players, result):
         """
         Backpropagate the result through the path using forward iteration.
         
@@ -166,11 +166,19 @@ class MCTSTree:
             path (list): List of node indices from root to leaf
             result (int): Game result (1 for player 1 win, -1 for player 2 win, 0 for draw)
         """
-        current_player = self.player  # Player who moves from root
-        # bulk numpy update all nodes in path by incrementing visit count
-        self.node_data[path, self.N_VISITS_COL] += 1
-        self.node_data[path, self.WINS_COL] += result * self.node_data[path, self.PLAYER_COL]+ \
-                                               0.5 * (result == 0)
+         
+        # path is the first indexed element of the path_with_players list:
+        path, players = map(list, zip(*path_with_players))
+
+        if result == 0:
+            self.node_data[path, self.WINS_COL] += 0.5
+        elif result == self.player:
+            # only update even indexed nodes
+            self.node_data[path[::2], self.WINS_COL] += 1
+        elif result == -self.player:
+            self.node_data[path[1::2], self.WINS_COL] += 1
+    
+
             
 # initial_board = np.zeros((6,7))
 # tree = MCTSTree(initial_board)
