@@ -1,5 +1,6 @@
 # Board module to represent connect 4 boards
 import numpy as np
+from typing import Tuple
 
 
 def check_valid_board(board_arr: np.ndarray) -> bool:
@@ -140,3 +141,13 @@ def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]:
             legal_moves[col] = int(empty_rows[-1])  # Get the lowest empty row
 
     return legal_moves
+
+def add_move(board_arr, player_int: int, loc: Tuple[int, int]) -> None:
+    """
+    Adds a move to the board at the specified location.
+
+    :param player_int: The player making the move (1 for player 1, -1 for player 2).
+    :param loc: A tuple (row, col) representing the row and column of the move.
+    """
+    row, col = loc
+    board_arr[row, col] = player_int
