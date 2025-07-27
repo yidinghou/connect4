@@ -43,3 +43,20 @@ def test_select_mock_expansion():
 
     expected_board = board.add_move(initial_board, 1, (5, sample_col))
     assert np.array_equal(leaf_board, expected_board)
+
+def test_expand():
+    initial_board = np.zeros((6,7))
+    tree = MCTSTree(initial_board)
+    tree.expand_node(0, initial_board)
+
+    expected = np.array([[-1, -1,  0,  0,  0,  1],
+       [ 0,  0,  0,  0,  0,  0],
+       [ 0,  1,  0,  0,  0,  0],
+       [ 0,  2,  0,  0,  0,  0],
+       [ 0,  3,  0,  0,  0,  0],
+       [ 0,  4,  0,  0,  0,  0],
+       [ 0,  5,  0,  0,  0,  0],
+       [ 0,  6,  0,  0,  0,  0]])
+
+    node_data_head = tree.node_data[:8, :]
+    assert np.array_equal(node_data_head, expected)

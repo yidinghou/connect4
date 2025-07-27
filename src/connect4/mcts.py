@@ -109,6 +109,24 @@ class MCTSTree:
         
         return child_idx, new_board_state, -player
 
+    def expand_node(self, node_idx, board_state):
+        """
+        Expand a node by creating all possible child nodes.
+        
+        Args:
+            node_idx (int): Index of node to expand
+            board_state (np.ndarray): Board state at this node
+        """
+        legal_moves = board.get_legal_moves(board_state)
+        
+        # Create child for each legal move
+        for col in legal_moves.keys():
+            if (node_idx, col) not in self.children_map:
+                self._create_new_node(node_idx, col)
+        
+        # Mark this node as expanded
+        self.node_data[node_idx, self.EXPANDED_COL] = 1
+        
     def _create_new_node(self, parent_idx, action_col):
         """
         Create a new node in the tree.
