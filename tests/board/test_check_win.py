@@ -175,19 +175,6 @@ def test_diagonal_wins(board):
     assert result is True, f"Expected win for diagonal board:\n{board}"
 
 
-
-@pytest.fixture
-def player_x_already_won_diagonal():
-    """Board where Player X has a down-right diagonal win."""
-    return np.array([
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0],
-        [X, 0, 0, 0, 0, 0, 0],
-        [O, X, 0, 0, 0, 0, 0],
-        [O, O, X, 0, 0, 0, 0],
-        [O, O, O, X, 0, 0, 0],
-    ], dtype=int)
-
 def test_player_x_already_won_horizontal():
     board_arr = np.array([
         [0, 0, 0, 0, 0, 0, 0],
@@ -229,6 +216,31 @@ def test_player_o_already_won_vertical():
 
 
     result = check_incremental_win(board_arr, row=5, col=1, player=O)
+    assert result is False, "Checking wrong coordinate."
+
+def test_player_x_already_won_diagonal():
+    board_arr = np.array([
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [X, 0, 0, 0, 0, 0, 0],
+        [O, X, 0, 0, 0, 0, 0],
+        [O, O, X, 0, 0, 0, 0],
+        [O, O, O, X, 0, 0, 0],
+    ], dtype=int)
+
+
+    """Test that check_incremental_win detects Player X's diagonal win."""
+    start_row = 2
+    start_col = 0
+    for i in range(4):
+        result = check_incremental_win(board_arr, row=start_row+i, col=start_col+i, player=X)
+        assert result is True, "Expected Player X to have already won diagonally."
+
+        result = check_incremental_win(board_arr, row=start_row+i, col=start_col+i, player=O)
+        assert result is False, "Checking wrong player."
+
+
+    result = check_incremental_win(board_arr, row=5, col=0, player=O)
     assert result is False, "Checking wrong coordinate."
 
 #endregion
