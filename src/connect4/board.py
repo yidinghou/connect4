@@ -144,7 +144,7 @@ def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]:
 
     return legal_moves
 
-def add_move(board_arr, player_int: int, loc: Tuple[int, int]) -> None:
+def add_move(board_arr, player: int, loc: Tuple[int, int]) -> None:
     """
     Adds a move to the board at the specified location.
 
@@ -157,7 +157,7 @@ def add_move(board_arr, player_int: int, loc: Tuple[int, int]) -> None:
         None
     """
     row, col = loc
-    board_arr[row, col] = player_int
+    board_arr[row, col] = player
 
 def is_full(board_arr: np.ndarray) -> bool:
     return np.sum(board_arr == 0) == 0  # no empty spots left
