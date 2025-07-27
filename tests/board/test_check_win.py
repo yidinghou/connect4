@@ -1,6 +1,6 @@
 
 
-from connect4.board import check_win
+from connect4.board import check_win, check_incremental_win
 import numpy as np
 import pytest
 X=1
@@ -173,6 +173,53 @@ def test_diagonal_wins(board):
 
     result = check_win(board*-1)  # Check for player -1
     assert result is True, f"Expected win for diagonal board:\n{board}"
+
+
+@pytest.fixture
+def player_x_already_won_horizontal():
+    """Board where Player X has a horizontal win on the bottom row."""
+    return np.array([
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [X, X, X, X, 0, 0, 0],
+    ], dtype=int)
+
+@pytest.fixture
+def player_o_already_won_vertical():
+    """Board where Player O has a vertical win in the first column."""
+    return np.array([
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [O, 0, 0, 0, 0, 0, 0],
+        [O, 0, 0, 0, 0, 0, 0],
+        [O, 0, 0, 0, 0, 0, 0],
+        [O, 0, 0, 0, 0, 0, 0],
+    ], dtype=int)
+
+@pytest.fixture
+def player_x_already_won_diagonal():
+    """Board where Player X has a down-right diagonal win."""
+    return np.array([
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [X, 0, 0, 0, 0, 0, 0],
+        [O, X, 0, 0, 0, 0, 0],
+        [O, O, X, 0, 0, 0, 0],
+        [O, O, O, X, 0, 0, 0],
+    ], dtype=int)
+
+def test_player_x_already_won_horizontal(player_x_already_won_horizontal):
+    """Test that check_incremental_win detects Player X's horizontal win."""
+    for i in range(4):
+        result = check_incremental_win(player_x_already_won_horizontal, row=5, col=i, player=X)
+        assert result is True, "Expected Player X to have already won horizontally."
+
+    result = check_incremental_win(player_x_already_won_horizontal, row=4, col=1, player=X)
+    assert result is False, "Checking wrong coordinate."
+
 
 #endregion
 
