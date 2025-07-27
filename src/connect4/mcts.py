@@ -4,10 +4,11 @@ from connect4 import board
 import numpy as np
 import random
 
+
 def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     """
     Perform a random rollout from the current board state.
-    
+
     Args:
         board_arr (np.ndarray): The current board state.
         player (int): The player to make the first move in the rollout.
@@ -26,57 +27,22 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
             print(f"Player {player} added move at ({row}, {col})")
             assert board.check_valid_board(board_arr)
 
-        is_terminal, result = board.check_board_state_incremental(board_arr, row, col, player)
+        is_terminal, result = board.check_board_state_incremental(
+            board_arr, row, col, player
+        )
         player *= -1
 
     return result
 
-# Initialize nodes data structure
-N = 100
-NODES_DATA = np.zeros((N, 6), dtype=int)
-
-#adding parent node
-NODES_DATA[:, PARENT_COL] = -1  # parent_idx
-NODES_DATA[:, ACTION_COL] = -1  # action_idx
-NEXT_IDX = 1
-
-PLAYER = 1
-
-def traverse_select(node_idx, node_board):
-    """
-    Traverse the tree to select a node based on UCT (Upper Confidence Bound for Trees).
-    Returns:
-        int: The index of the selected node.
-        board_arr: np.ndarray: The board state after the selected node's action.
-    """
-
-    if NODES_DATA[node_idx, EXPANDED_COL] == 0:
-        # We've found a leaf node, so selection is over.
-        return node_idx, node_board
-    
-    children = get_children(node_idx)
-    best_action = score_select_uct(children)
-    node_board = board.add_move(node_board, PLAYER, best_action)
-
-    child_key = (parent_idx, action)
-    if child_key is NOT in children_map: # then add to tree
-        NODES_DATA[NEXT_IDX, PARENT_COL] = node_idx
-        NODES_DATA[NEXT_IDX, ACTION_COL] = best_action
-        node_idx = NEXT_IDX
-    else:
-        node_idx = children_map[child_key]
-
-
-
 class MCTSTree:
-
     def __init__(self, root_board):
         self.root_board = root_board
-        self.player = 1 # Starting player
+        self.player = 1  # Starting player
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
-        self.node_data = np.zeros((100, 6), dtype=int)  # Initial size, can be resized later
+        self.node_data = np.zeros(
+            (100, 6), dtype=int
+        )  # Initial size, can be resized later
 
-        self.node_count = 0
         # 6 data elements: parent_idx, action_idx, n_visits, wins, prior, expanded
         self.PARENT_COL = 0
         self.ACTION_COL = 1
@@ -85,68 +51,91 @@ class MCTSTree:
         self.PRIOR_COL = 4
         self.EXPANDED_COL = 5
 
+        self.node_data[0, self.PARENT_COL]=-1
+        self.node_data[0, self.ACTION_COL] = -1 
+        self.node_count = 1
+
+
     def select_leaf(self, node_idx, node_board):
+        """
+        Traverse tree to find a leaf node using UCT selection.
+
+        Args:
+            node_idx (int): Starting node index
+            node_board (np.ndarray): Board state at starting node
+
+        Returns:
+            tuple: (leaf_node_idx, leaf_board_state)
+        """
         current_player = self.player
         current_node = node_idx
         current_board = node_board.copy()
 
-        found_leaf = False
-        while self.node_data[current_node, self.EXPANDED_COL] == 1:  # While not a leaf
-            legal_moves = board.get_legal_moves(current_board)
-            if not legal_moves:  # Board is full
-                break
-                
-            # For now, use random selection (replace with UCT)
-            col = random.choice(list(legal_moves.keys()))
-            row = legal_moves[col]
-            best_action = (row, col)
-            
-            current_board = board.add_move(node_board, current_player, best_action)
-            child_key = (current_node, col)  # Use column as action identifier
+        # Keep traversing until we find a leaf
+        while self.node_data[current_node, self.EXPANDED_COL] == 1:
+            current_node, current_board, current_player = (
+                self._traverse_one_step(current_node, current_board, current_player)
+            )
 
-            if child_key not in self.children_map:
-                # Create new leaf node
-                self.children_map[child_key] = self.node_count
-                self.node_data[self.node_count, self.PARENT_COL] = current_node
-                self.node_data[self.node_count, self.ACTION_COL] = col
-                current_node = self.node_count
-                self.node_count += 1
-                break  # Found leaf, exit loop
-            else:
-                current_node = self.children_map[child_key]
-            
-            current_player *= -1
-        
         return current_node, current_board
 
-        if self.node_data[node_idx, self.EXPANDED_COL] == 0:
-            return node_idx, node_board
+    def _traverse_one_step(self, node_idx, board_state, player):
+        """
+        Perform one step of tree traversal using UCT selection among existing children.
+        """
+        # Check if game is over (no legal moves)
+        legal_moves = board.get_legal_moves(board_state)
+        if not legal_moves:
+            return node_idx, board_state, player, True  # Terminal node - force break
         
-        is_leaf = False
-        while not is_leaf:
-            # children = get_children(node_idx)
-            # best_action = score_select_uct(children)
-            best_action = 1
-            node_board = board.add_move(node_board, self.player, best_action)
+        # Get existing children only
+        existing_children = []
+        for col in legal_moves.keys():
+            child_key = (node_idx, col)
+            if child_key in self.children_map:
+                existing_children.append(col)
+        
+        if not existing_children:
+            # This should never happen in Option 1 since we only call this on expanded nodes
+            # But if it does, it means the node claims to be expanded but has no children
+            raise ValueError(f"Node {node_idx} claims to be expanded but has no children")
+        
+        # Select among existing children (replace with UCT)
+        col = random.choice(existing_children)
+        row = legal_moves[col]
+        
+        new_board_state = board.add_move(board_state, player, (row, col))
+        child_idx = self.children_map[(node_idx, col)]
+        
+        return child_idx, new_board_state, -player
 
-            child_key = (node_idx, best_action)
-            if child_key not in self.children_map:
-                is_leaf = True
+    def _create_new_node(self, parent_idx, action_col):
+        """
+        Create a new node in the tree.
 
-                # add to children_map
-                self.children_map[child_key] = self.node_count
+        Args:
+            parent_idx (int): Index of parent node
+            action_col (int): Column action that leads to this node
 
-                # add to node_data
-                self.node_data[self.node_count, self.PARENT_COL] = node_idx
-                self.node_data[self.node_count, self.ACTION_COL] = best_action
-                node_idx = self.node_count
-                self.node_count += 1
-            else:
-                node_idx = self.children_map[child_key]
+        Returns:
+            int: Index of newly created node
+        """
+        # Create new node
+        new_node_idx = self.node_count
+        self.children_map[(parent_idx, action_col)] = new_node_idx
 
-            self.player *= -1
+        # Initialize node data
+        self.node_data[new_node_idx, self.PARENT_COL] = parent_idx
+        self.node_data[new_node_idx, self.ACTION_COL] = action_col
+        self.node_data[new_node_idx, self.N_VISITS_COL] = 0
+        self.node_data[new_node_idx, self.WINS_COL] = 0
+        self.node_data[new_node_idx, self.PRIOR_COL] = 0
+        self.node_data[new_node_idx, self.EXPANDED_COL] = (
+            0  # New nodes start unexpanded
+        )
 
-        return node_idx, node_board
-
-node_board = np.zeros((6,7))
-tree = MCTSTree(node_board)
+        self.node_count += 1
+        return new_node_idx
+        
+# initial_board = np.zeros((6,7))
+# tree = MCTSTree(initial_board)
