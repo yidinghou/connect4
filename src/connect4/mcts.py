@@ -37,7 +37,7 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
 class MCTSTree:
     def __init__(self, root_board):
         self.root_board = root_board
-        self.player = 1  # Starting player
+        self.player = 1  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
         self.node_data = np.zeros(
             (100, 6), dtype=int
@@ -70,14 +70,17 @@ class MCTSTree:
         current_player = self.player
         current_node = node_idx
         current_board = node_board.copy()
+        path_with_players = [(current_node, -1 * current_player)]  # (node, player_to_move)
 
         # Keep traversing until we find a leaf
         while self.node_data[current_node, self.EXPANDED_COL] == 1:
             current_node, current_board, current_player = (
                 self._traverse_one_step(current_node, current_board, current_player)
             )
+            path_with_players.append((current_node, -1 *current_player))
 
-        return current_node, current_board
+
+        return current_node, current_board, path_with_players
 
     def _traverse_one_step(self, node_idx, board_state, player):
         """
@@ -155,5 +158,19 @@ class MCTSTree:
         self.node_count += 1
         return new_node_idx
         
+    def backpropagate(self, path, result):
+        """
+        Backpropagate the result through the path using forward iteration.
+        
+        Args:
+            path (list): List of node indices from root to leaf
+            result (int): Game result (1 for player 1 win, -1 for player 2 win, 0 for draw)
+        """
+        current_player = self.player  # Player who moves from root
+        # bulk numpy update all nodes in path by incrementing visit count
+        self.node_data[path, self.N_VISITS_COL] += 1
+        self.node_data[path, self.WINS_COL] += result * self.node_data[path, self.PLAYER_COL]+ \
+                                               0.5 * (result == 0)
+            
 # initial_board = np.zeros((6,7))
 # tree = MCTSTree(initial_board)
