@@ -1,5 +1,6 @@
 # Board module to represent connect 4 boards
 import numpy as np
+from typing import Tuple
 
 
 def check_valid_board(board_arr: np.ndarray) -> bool:
@@ -18,6 +19,8 @@ def check_valid_board(board_arr: np.ndarray) -> bool:
     
     if not check_floating_pieces(board_arr):
         return False
+
+    return True
 
 def check_floating_pieces(board_arr: np.ndarray) -> bool:
     """
@@ -140,3 +143,62 @@ def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]:
             legal_moves[col] = int(empty_rows[-1])  # Get the lowest empty row
 
     return legal_moves
+
+def add_move(board_arr, player: int, loc: Tuple[int, int]) -> None:
+    """
+    Adds a move to the board at the specified location.
+
+    Args:
+        board_arr (np.ndarray): The board array to update.
+        player_int (int): The player making the move (1 for player 1, -1 for player 2).
+        loc (Tuple[int, int]): The (row, col) position for the move.
+
+    Returns:
+        new_board (np.ndarray): A new board array with the move added.
+    """
+    new_board = board_arr.copy()
+    row, col = loc
+    new_board[row, col] = player
+    return new_board
+
+def is_full(board_arr: np.ndarray) -> bool:
+    return np.sum(board_arr == 0) == 0  # no empty spots left
+
+def check_board_state(board_arr: np.ndarray) -> Tuple[bool, int]:
+    """
+    Checks the state of the board and returns a string indicating the result.
+
+    Args:
+        board_arr (np.ndarray): The board array to check.
+
+    Returns:
+        is_terminal (bool): True if the game is over (win or draw), False otherwise.
+        result (int): 1 if player 1 wins, -1 if player 2 wins, 0 if draw, None if ongoing.
+    """
+    if check_win(board_arr):
+        return True, 1 if np.sum(board_arr == 1) > np.sum(board_arr == -1) else -1
+    elif is_full(board_arr):
+        return True, 0
+    else:
+        return False, None
+
+def check_board_state_incremental(board_arr: np.ndarray, row: int, col: int, player: int) -> Tuple[bool, int]:
+    """
+    Checks the state of the board and returns a string indicating the result.
+
+    Args:
+        board_arr (np.ndarray): The board array to check.
+        row (int): The row index of the last move.
+        col (int): The column index of the last move.
+        player (int): The player who made the last move (1 for player 1, -1 for player 2).
+
+    Returns:
+        is_terminal (bool): True if the game is over (win or draw), False otherwise.
+        result (int): 1 if player 1 wins, -1 if player 2 wins, 0 if draw, None if ongoing.
+    """
+    if check_incremental_win(board_arr, row, col, player):
+        return True, player
+    elif is_full(board_arr):
+        return True, 0
+    else:
+        return False, None
