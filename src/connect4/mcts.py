@@ -40,7 +40,7 @@ class MCTSTree:
         self.player = 1  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
         self.node_data = np.zeros(
-            (iterations, 6), dtype=int
+            (iterations, 6), dtype=float
         )  # Initial size, can be resized later
 
         # 6 data elements: parent_idx, action_idx, n_visits, wins, prior, expanded
@@ -177,7 +177,20 @@ class MCTSTree:
             self.node_data[path[1::2], self.WINS_COL] += 1
         elif result == -self.player:
             self.node_data[path[::2], self.WINS_COL] += 1
-    
+
+    def mcts_step(self):
+        # 1. Selection - find leaf and track path
+        leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
+        
+        # 2. Expansion - create children for the leaf
+        self.expand_node(leaf_node, leaf_board)
+        
+        # 3. Simulation - random rollout from leaf
+        result = rollout(leaf_board.copy(), self.player)
+        
+        # 4. Backpropagation - update statistics along path
+        self.backpropagate(path, result)
+        
     def to_pandas(self):
         """
         Convert the node data to a pandas DataFrame for easier analysis.
