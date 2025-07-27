@@ -56,32 +56,33 @@ def check_win(board_arr: np.ndarray) -> bool:
     Returns:
         bool: True if there is a winning condition, False otherwise.
     """
-    #check each row for four in a row
-    for row in board_arr:
-        if np.any(np.convolve(row, np.ones(4, dtype=int), 'valid') == 4):
-            return True
-    
-    #check each column for four in a row
-    for col in board_arr.T:
-        if np.any(np.convolve(col, np.ones(4, dtype=int), 'valid') == 4):
-            return True
-
-    #check diagonal (top-left to bottom-right)
-    for i in range(board_arr.shape[0] - 3):
-        for j in range(board_arr.shape[1] - 3):
-            if (board_arr[i, j] == 1 and
-                board_arr[i + 1, j + 1] == 1 and
-                board_arr[i + 2, j + 2] == 1 and
-                board_arr[i + 3, j + 3] == 1):
+    for player in [1, -1]:
+        #check each row for four in a row
+        for row in board_arr:
+            if np.any(np.convolve(row, np.ones(4, dtype=int), 'valid') == 4 * player):
+                return True
+        
+        #check each column for four in a row
+        for col in board_arr.T:
+            if np.any(np.convolve(col, np.ones(4, dtype=int), 'valid') == 4 * player):
                 return True
 
-    #check diagonal (bottom-left to top-right)
-    for i in range(3, board_arr.shape[0]):
-        for j in range(board_arr.shape[1] - 3):
-            if (board_arr[i, j] == 1 and
-                board_arr[i - 1, j + 1] == 1 and
-                board_arr[i - 2, j + 2] == 1 and
-                board_arr[i - 3, j + 3] == 1):
-                return True
+        #check diagonal (top-left to bottom-right)
+        for i in range(board_arr.shape[0] - 3):
+            for j in range(board_arr.shape[1] - 3):
+                if (board_arr[i, j] == player and
+                    board_arr[i + 1, j + 1] == player and
+                    board_arr[i + 2, j + 2] == player and
+                    board_arr[i + 3, j + 3] == player):
+                    return True
+
+        #check diagonal (bottom-left to top-right)
+        for i in range(3, board_arr.shape[0]):
+            for j in range(board_arr.shape[1] - 3):
+                if (board_arr[i, j] == player and
+                    board_arr[i - 1, j + 1] == player and
+                    board_arr[i - 2, j + 2] == player and
+                    board_arr[i - 3, j + 3] == player):
+                    return True
 
     return False  # No winning condition found
