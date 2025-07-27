@@ -148,8 +148,13 @@ def add_move(board_arr, player_int: int, loc: Tuple[int, int]) -> None:
     """
     Adds a move to the board at the specified location.
 
-    :param player_int: The player making the move (1 for player 1, -1 for player 2).
-    :param loc: A tuple (row, col) representing the row and column of the move.
+    Args:
+        board_arr (np.ndarray): The board array to update.
+        player_int (int): The player making the move (1 for player 1, -1 for player 2).
+        loc (Tuple[int, int]): The (row, col) position for the move.
+
+    Returns:
+        None
     """
     row, col = loc
     board_arr[row, col] = player_int
