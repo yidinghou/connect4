@@ -37,7 +37,7 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
 class MCTSTree:
     def __init__(self, root_board, iterations=10):
         self.root_board = root_board
-        self.player = 1  # player who moves from root
+        self.player = 1  # player who moves from root TODO make it from board
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
         self.node_data = np.zeros(
             (iterations, 6), dtype=float
@@ -219,5 +219,4 @@ class MCTSTree:
         visits = child[:, self.N_VISITS_COL] / sum(child[:, self.N_VISITS_COL])
         return value, visits
 
-# initial_board = np.zeros((6,7))
-# tree = MCTSTree(initial_board)
+# TODO: test mcts_step better
