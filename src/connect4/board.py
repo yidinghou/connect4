@@ -123,7 +123,7 @@ def check_incremental_win(board_arr: np.ndarray, row: int, col: int, player: int
     return False  # No win found in the local region
 
 
-def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]:
+def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]: #TODO no legal moves if terminal state
     """
     Returns a dictionary of legal moves for a Connect 4 board.
     The key is the column index, and the value is the row index of the next available spot.
