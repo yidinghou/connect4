@@ -81,31 +81,12 @@ class MCTSTree:
             raise ValueError(f"Node {node_idx} is marked expanded but has no children")
 
         # Select column with highest UCT score
-        selected_col = self.weighted_sample(child_scores)
+        selected_col = weighted_sample(child_scores)
         row = legal_moves[selected_col]
         new_board_state = board.add_move(board_state, player, (row, selected_col))
         child_idx = self.children_map[(node_idx, selected_col)]
         
         return child_idx, new_board_state, -player
-
-    def weighted_sample(self, child_scores: dict) -> int:
-        """
-        If multiple actions share the maximum UCT score, choose one uniformly at random.
-        Otherwise, return the unique max.
-        
-        Args:
-            child_scores (dict): mapping of action column -> score
-
-        Returns:
-            int: a selected column
-        """
-        import random
-        max_score = max(child_scores.values())
-        # Using a tolerance if scores are floats:
-        candidates = [col for col, score in child_scores.items() if abs(score - max_score) < 1e-8]
-        if len(candidates) > 1:
-            return random.choice(candidates)
-        return candidates[0]
 
     def expand_node(self, node_idx, board_state):
         """
@@ -273,3 +254,22 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
         player *= -1
 
     return result
+
+
+def weighted_sample(child_scores: dict) -> int:
+    """
+    If multiple actions share the maximum UCT score, choose one uniformly at random.
+    Otherwise, return the unique max.
+    
+    Args:
+        child_scores (dict): mapping of action column -> score
+
+    Returns:
+        int: a selected column
+    """
+    max_score = max(child_scores.values())
+    # Using a tolerance if scores are floats:
+    candidates = [col for col, score in child_scores.items() if abs(score - max_score) < 1e-8]
+    if len(candidates) > 1:
+        return random.choice(candidates)
+    return candidates[0]
