@@ -205,6 +205,7 @@ class MCTSTree:
     def mcts_step(self):
         # 1. Selection - find leaf and track path
         leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
+        self.apply_virtual_loss(path)
         
         # 2. Expansion - create children for the leaf
         self.expand_node(leaf_node, leaf_board)
