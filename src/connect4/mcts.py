@@ -74,6 +74,11 @@ class MCTSTree:
 
         # Keep traversing until we find a leaf
         while self.node_data[current_node, self.EXPANDED_COL] == 1:
+            is_terminal, _ = board.check_board_state(current_board)
+            if is_terminal:
+                # Terminal node; don't expand further
+                return current_node, current_board, path
+
             current_node, current_board, current_player = (
                 self._traverse_one_step(current_node, current_board, current_player)
             )
@@ -120,6 +125,10 @@ class MCTSTree:
             node_idx (int): Index of node to expand
             board_state (np.ndarray): Board state at this node
         """
+        is_terminal, _ = board.check_board_state(board_state)
+        if is_terminal:
+            return
+        
         legal_moves = board.get_legal_moves(board_state)
         
         # Create child for each legal move
