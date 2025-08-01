@@ -35,7 +35,7 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     return result
 
 class MCTSTree:
-    def __init__(self, root_board, player, iterations=10):
+    def __init__(self, root_board, player=1, iterations=10):
         self.root_board = root_board
         self.player = player  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
@@ -74,10 +74,10 @@ class MCTSTree:
 
         # Keep traversing until we find a leaf
         while self.node_data[current_node, self.EXPANDED_COL] == 1:
-            is_terminal, _ = board.check_board_state(current_board)
-            if is_terminal:
-                # Terminal node; don't expand further
-                return current_node, current_board, path
+            # is_terminal, _ = board.check_board_state(current_board)
+            # if is_terminal:
+            #     # Terminal node; don't expand further
+            #     return current_node, current_board, path
 
             current_node, current_board, current_player = (
                 self._traverse_one_step(current_node, current_board, current_player)
@@ -179,8 +179,8 @@ class MCTSTree:
         # path is the first indexed element of the path_with_players list:
 
         self.node_data[path, self.N_VISITS_COL] += 1
-        self.node_data[path[::2], self.WINS_COL] += value  # Update wins for player 1's turns
-        self.node_data[path[1::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
+        self.node_data[path[1::2], self.WINS_COL] += value  # Update wins for player 1's turns
+        self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
 
     def mcts_step(self):
         # 1. Selection - find leaf and track path
@@ -191,9 +191,10 @@ class MCTSTree:
         
         # 3. Simulation - random rollout from leaf
         result = rollout(leaf_board.copy(), self.player)
-        
+        value = (result + 1) / 2
+
         # 4. Backpropagation - update statistics along path
-        self.backpropagate(path, result)
+        self.backpropagate(path, value)
     
     def select_and_expand(self):
         """
