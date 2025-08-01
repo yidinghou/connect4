@@ -3,7 +3,7 @@
 from connect4 import board
 import numpy as np
 import random
-
+import math
 
 def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     """
@@ -35,7 +35,7 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     return result
 
 class MCTSTree:
-    def __init__(self, root_board, player=1, iterations=10):
+    def __init__(self, root_board, player=1, iterations=10, exploration_factor=math.sqrt(2)):
         self.root_board = root_board
         self.player = player  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
@@ -54,6 +54,7 @@ class MCTSTree:
         self.node_data[0, self.PARENT_COL]=-1
         self.node_data[0, self.ACTION_COL] = -1 
         self.node_count = 1
+        self.exploration_factor = exploration_factor
 
 
     def select_leaf(self, node_idx, node_board):
@@ -89,31 +90,30 @@ class MCTSTree:
 
     def _traverse_one_step(self, node_idx, board_state, player):
         """
-        Perform one step of tree traversal using UCT selection among existing children.
+        Perform one traversal step: choose the child with the highest UCT score.
         """
-        # Check if game is over (no legal moves)
         legal_moves = board.get_legal_moves(board_state)
         if not legal_moves:
-            return node_idx, board_state, player, True  # Terminal node - force break
+            return node_idx, board_state, player  # Terminal node
         
-        # Get existing children only
-        existing_children = []
+        # Gather children and corresponding UCT scores
+        child_scores = {}
+        parent_visits = self.node_data[node_idx, self.N_VISITS_COL]
         for col in legal_moves.keys():
             child_key = (node_idx, col)
             if child_key in self.children_map:
-                existing_children.append(col)
-        
-        if not existing_children:
-            # This should never happen in Option 1 since we only call this on expanded nodes
-            # But if it does, it means the node claims to be expanded but has no children
-            raise ValueError(f"Node {node_idx} claims to be expanded but has no children")
-        
-        # Select among existing children (replace with UCT)
-        col = random.choice(existing_children)
-        row = legal_moves[col]
-        
-        new_board_state = board.add_move(board_state, player, (row, col))
-        child_idx = self.children_map[(node_idx, col)]
+                child_idx = self.children_map[child_key]
+                score = self._uct_score(child_idx, parent_visits)
+                child_scores[col] = score
+
+        if not child_scores:
+            raise ValueError(f"Node {node_idx} is marked expanded but has no children")
+
+        # Select column with highest UCT score
+        selected_col = max(child_scores, key=child_scores.get)
+        row = legal_moves[selected_col]
+        new_board_state = board.add_move(board_state, player, (row, selected_col))
+        child_idx = self.children_map[(node_idx, selected_col)]
         
         return child_idx, new_board_state, -player
 
@@ -235,4 +235,13 @@ class MCTSTree:
         visits = child[:, self.N_VISITS_COL] / sum(child[:, self.N_VISITS_COL])
         return value, visits
 
+    def _uct_score(self, child_idx, parent_visits):
+        wins = self.node_data[child_idx, self.WINS_COL]
+        visits = self.node_data[child_idx, self.N_VISITS_COL]
+        if visits == 0:
+            # Favor unexplored children
+            return 10e6
+        exploitation = wins / visits
+        exploration = self.exploration_factor * math.sqrt(math.log(parent_visits) / visits)
+        return exploitation + exploration
 # TODO: test mcts_step better
