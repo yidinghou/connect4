@@ -37,56 +37,41 @@ class MCTSTree:
             node_board (np.ndarray): Board state at starting node
 
         Returns:
-            tuple: (leaf_node_idx, leaf_board_state)
+            tuple: (leaf_node_idx, leaf_board_state, path)
         """
         current_player = self.player
         current_node = node_idx
         current_board = node_board.copy()
-        path = [current_node]  # (node, player_to_move)
+        path = [current_node]
 
         # Keep traversing until we find a leaf
         while self.node_data[current_node, self.EXPANDED_COL] == 1:
-            # is_terminal, _ = board.check_board_state(current_board)
-            # if is_terminal:
-            #     # Terminal node; don't expand further
-            #     return current_node, current_board, path
+            legal_moves = board.get_legal_moves(current_board)
+            if not legal_moves:
+                break  # Terminal node
+            
+            # Gather children and corresponding UCT scores
+            child_scores = {}
+            parent_visits = self.node_data[current_node, self.N_VISITS_COL]
+            for col in legal_moves.keys():
+                child_key = (current_node, col)
+                if child_key in self.children_map:
+                    child_idx = self.children_map[child_key]
+                    score = uct_score(self.node_data, child_idx, parent_visits, self.exploration_factor)
+                    child_scores[col] = score
 
-            current_node, current_board, current_player = (
-                self._traverse_one_step(current_node, current_board, current_player)
-            )
+            if not child_scores:
+                raise ValueError(f"Node {current_node} is marked expanded but has no children")
+
+            # Select column with highest UCT score
+            selected_col = weighted_sample(child_scores)
+            row = legal_moves[selected_col]
+            current_board = board.add_move(current_board, current_player, (row, selected_col))
+            current_node = self.children_map[(current_node, selected_col)]
+            current_player = -current_player
             path.append(current_node)
 
-
         return current_node, current_board, path
-
-    def _traverse_one_step(self, node_idx, board_state, player):
-        """
-        Perform one traversal step: choose the child with the highest UCT score.
-        """
-        legal_moves = board.get_legal_moves(board_state)
-        if not legal_moves:
-            return node_idx, board_state, player  # Terminal node
-        
-        # Gather children and corresponding UCT scores
-        child_scores = {}
-        parent_visits = self.node_data[node_idx, self.N_VISITS_COL]
-        for col in legal_moves.keys():
-            child_key = (node_idx, col)
-            if child_key in self.children_map:
-                child_idx = self.children_map[child_key]
-                score = uct_score(self.node_data, child_idx, parent_visits, self.exploration_factor)
-                child_scores[col] = score
-
-        if not child_scores:
-            raise ValueError(f"Node {node_idx} is marked expanded but has no children")
-
-        # Select column with highest UCT score
-        selected_col = weighted_sample(child_scores)
-        row = legal_moves[selected_col]
-        new_board_state = board.add_move(board_state, player, (row, selected_col))
-        child_idx = self.children_map[(node_idx, selected_col)]
-        
-        return child_idx, new_board_state, -player
 
     def expand_node(self, node_idx, board_state):
         """
