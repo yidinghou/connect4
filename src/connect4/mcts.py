@@ -35,13 +35,13 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     return result
 
 class MCTSTree:
-    def __init__(self, root_board, iterations=10):
+    def __init__(self, root_board, player, iterations=10):
         self.root_board = root_board
-        self.player = 1  # player who moves from root TODO make it from board
+        self.player = player  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
-        self.node_data = np.zeros(
-            (iterations, 6), dtype=float
-        )  # Initial size, can be resized later
+        
+        data_size = iterations * 7 + 1  # Each iteration can have up to 7 children (one for each column), adding 1 for the root node
+        self.node_data = np.zeros((data_size, 6), dtype=float)
 
         # 6 data elements: parent_idx, action_idx, n_visits, wins, prior, expanded
         self.PARENT_COL = 0
