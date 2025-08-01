@@ -28,6 +28,35 @@ class MCTSTree:
         self.node_count = 1
         self.exploration_factor = exploration_factor
 
+    def mcts_step(self):
+        """
+        Perform one complete MCTS iteration: select, expand, simulate, and backpropagate.
+        """
+        # 1 & 2. Selection and Expansion (with virtual loss)
+        leaf_node, leaf_board, path = self.select_and_expand()
+        
+        # 3. Simulation - random rollout from leaf
+        result = rollout(leaf_board.copy(), self.player)
+        value = (result + 1) / 2
+
+        # 4. Backpropagation - update statistics along path
+        self.backpropagate(path, value)
+    
+    def select_and_expand(self):
+        """
+        Select a leaf node and expand it. Used for batching simulations.
+        
+        Returns:
+            tuple: (leaf_node_idx, leaf_board_state, path)
+        """
+        leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
+        
+        # Apply virtual loss and expand
+        self.apply_virtual_loss(path)
+        self.expand_node(leaf_node, leaf_board)
+
+        return leaf_node, leaf_board, path
+
     def select_leaf(self, node_idx, node_board):
         """
         Traverse tree to find a leaf node using UCT selection.
@@ -95,6 +124,21 @@ class MCTSTree:
         # Mark this node as expanded
         self.node_data[node_idx, self.EXPANDED_COL] = 1
         
+    def backpropagate(self, path, value):
+        """
+        Backpropagate the result through the path using forward iteration.
+        
+        Args:
+            path (list): List of node indices from root to leaf
+            result (int): Game result (1 for player 1 win, -1 for player 2 win, 0 for draw)
+        """
+         
+        # path is the first indexed element of the path_with_players list:
+
+        # self.node_data[path, self.N_VISITS_COL] += 1
+        self.node_data[path[1::2], self.WINS_COL] += value  # Update wins for player 1's turns
+        self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
+
     def _create_new_node(self, parent_idx, action_col):
         """
         Create a new node in the tree.
@@ -122,50 +166,14 @@ class MCTSTree:
 
         self.node_count += 1
         return new_node_idx
-        
-    def backpropagate(self, path, value):
-        """
-        Backpropagate the result through the path using forward iteration.
-        
-        Args:
-            path (list): List of node indices from root to leaf
-            result (int): Game result (1 for player 1 win, -1 for player 2 win, 0 for draw)
-        """
-         
-        # path is the first indexed element of the path_with_players list:
 
-        # self.node_data[path, self.N_VISITS_COL] += 1
-        self.node_data[path[1::2], self.WINS_COL] += value  # Update wins for player 1's turns
-        self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
-
-    def mcts_step(self):
+    def apply_virtual_loss(self, path, loss=0.1):
         """
-        Perform one complete MCTS iteration: select, expand, simulate, and backpropagate.
+        Apply a virtual loss to each node along the path.
         """
-        # 1 & 2. Selection and Expansion (with virtual loss)
-        leaf_node, leaf_board, path = self.select_and_expand()
-        
-        # 3. Simulation - random rollout from leaf
-        result = rollout(leaf_board.copy(), self.player)
-        value = (result + 1) / 2
-
-        # 4. Backpropagation - update statistics along path
-        self.backpropagate(path, value)
-    
-    def select_and_expand(self):
-        """
-        Select a leaf node and expand it. Used for batching simulations.
-        
-        Returns:
-            tuple: (leaf_node_idx, leaf_board_state, path)
-        """
-        leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
-        
-        # Apply virtual loss and expand
-        self.apply_virtual_loss(path)
-        self.expand_node(leaf_node, leaf_board)
-
-        return leaf_node, leaf_board, path
+        self.node_data[path, self.N_VISITS_COL] += 1
+        # For example, subtract virtual loss from wins for the player's turn
+        self.node_data[path, self.WINS_COL] -= loss
 
     def to_pandas(self):
         """
@@ -179,14 +187,6 @@ class MCTSTree:
             "parent_idx", "action_col", "n_visits", "wins", "prior", "expanded"
         ]
         return pd.DataFrame(self.node_data, columns=columns)
-
-    def apply_virtual_loss(self, path, loss=0.1):
-        """
-        Apply a virtual loss to each node along the path.
-        """
-        self.node_data[path, self.N_VISITS_COL] += 1
-        # For example, subtract virtual loss from wins for the player's turn
-        self.node_data[path, self.WINS_COL] -= loss
 
 def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     """
