@@ -3,7 +3,7 @@
 from connect4 import board
 import numpy as np
 import random
-
+import math
 
 def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     """
@@ -35,13 +35,13 @@ def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     return result
 
 class MCTSTree:
-    def __init__(self, root_board, iterations=10):
+    def __init__(self, root_board, player=1, iterations=10, exploration_factor=math.sqrt(2)):
         self.root_board = root_board
-        self.player = 1  # player who moves from root TODO make it from board
+        self.player = player  # player who moves from root
         self.children_map = {}  # Maps (parent_idx, action) to child_idx
-        self.node_data = np.zeros(
-            (iterations, 6), dtype=float
-        )  # Initial size, can be resized later
+        
+        data_size = iterations * 7 + 1  # Each iteration can have up to 7 children (one for each column), adding 1 for the root node
+        self.node_data = np.zeros((data_size, 6), dtype=float)
 
         # 6 data elements: parent_idx, action_idx, n_visits, wins, prior, expanded
         self.PARENT_COL = 0
@@ -54,6 +54,7 @@ class MCTSTree:
         self.node_data[0, self.PARENT_COL]=-1
         self.node_data[0, self.ACTION_COL] = -1 
         self.node_count = 1
+        self.exploration_factor = exploration_factor
 
 
     def select_leaf(self, node_idx, node_board):
@@ -74,6 +75,11 @@ class MCTSTree:
 
         # Keep traversing until we find a leaf
         while self.node_data[current_node, self.EXPANDED_COL] == 1:
+            # is_terminal, _ = board.check_board_state(current_board)
+            # if is_terminal:
+            #     # Terminal node; don't expand further
+            #     return current_node, current_board, path
+
             current_node, current_board, current_player = (
                 self._traverse_one_step(current_node, current_board, current_player)
             )
@@ -84,33 +90,52 @@ class MCTSTree:
 
     def _traverse_one_step(self, node_idx, board_state, player):
         """
-        Perform one step of tree traversal using UCT selection among existing children.
+        Perform one traversal step: choose the child with the highest UCT score.
         """
-        # Check if game is over (no legal moves)
         legal_moves = board.get_legal_moves(board_state)
         if not legal_moves:
-            return node_idx, board_state, player, True  # Terminal node - force break
+            return node_idx, board_state, player  # Terminal node
         
-        # Get existing children only
-        existing_children = []
+        # Gather children and corresponding UCT scores
+        child_scores = {}
+        parent_visits = self.node_data[node_idx, self.N_VISITS_COL]
         for col in legal_moves.keys():
             child_key = (node_idx, col)
             if child_key in self.children_map:
-                existing_children.append(col)
-        
-        if not existing_children:
-            # This should never happen in Option 1 since we only call this on expanded nodes
-            # But if it does, it means the node claims to be expanded but has no children
-            raise ValueError(f"Node {node_idx} claims to be expanded but has no children")
-        
-        # Select among existing children (replace with UCT)
-        col = random.choice(existing_children)
-        row = legal_moves[col]
-        
-        new_board_state = board.add_move(board_state, player, (row, col))
-        child_idx = self.children_map[(node_idx, col)]
+                child_idx = self.children_map[child_key]
+                score = self._uct_score(child_idx, parent_visits)
+                child_scores[col] = score
+
+        if not child_scores:
+            raise ValueError(f"Node {node_idx} is marked expanded but has no children")
+
+        # Select column with highest UCT score
+        selected_col = self.weighted_sample(child_scores)
+        row = legal_moves[selected_col]
+        new_board_state = board.add_move(board_state, player, (row, selected_col))
+        child_idx = self.children_map[(node_idx, selected_col)]
         
         return child_idx, new_board_state, -player
+
+
+    def weighted_sample(self, child_scores: dict) -> int:
+        """
+        If multiple actions share the maximum UCT score, choose one uniformly at random.
+        Otherwise, return the unique max.
+        
+        Args:
+            child_scores (dict): mapping of action column -> score
+
+        Returns:
+            int: a selected column
+        """
+        import random
+        max_score = max(child_scores.values())
+        # Using a tolerance if scores are floats:
+        candidates = [col for col, score in child_scores.items() if abs(score - max_score) < 1e-8]
+        if len(candidates) > 1:
+            return random.choice(candidates)
+        return candidates[0]
 
     def expand_node(self, node_idx, board_state):
         """
@@ -120,6 +145,10 @@ class MCTSTree:
             node_idx (int): Index of node to expand
             board_state (np.ndarray): Board state at this node
         """
+        is_terminal, _ = board.check_board_state(board_state)
+        if is_terminal:
+            return
+        
         legal_moves = board.get_legal_moves(board_state)
         
         # Create child for each legal move
@@ -158,7 +187,7 @@ class MCTSTree:
         self.node_count += 1
         return new_node_idx
         
-    def backpropagate(self, path, result):
+    def backpropagate(self, path, value):
         """
         Backpropagate the result through the path using forward iteration.
         
@@ -169,28 +198,37 @@ class MCTSTree:
          
         # path is the first indexed element of the path_with_players list:
 
-        self.node_data[path, self.N_VISITS_COL] += 1
-        if result == 0:
-            self.node_data[path, self.WINS_COL] += 0.5
-        elif result == self.player:
-            # only update even indexed nodes
-            self.node_data[path[1::2], self.WINS_COL] += 1
-        elif result == -self.player:
-            self.node_data[path[::2], self.WINS_COL] += 1
+        # self.node_data[path, self.N_VISITS_COL] += 1
+        self.node_data[path[1::2], self.WINS_COL] += value  # Update wins for player 1's turns
+        self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
 
     def mcts_step(self):
         # 1. Selection - find leaf and track path
         leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
+        self.apply_virtual_loss(path)
         
         # 2. Expansion - create children for the leaf
         self.expand_node(leaf_node, leaf_board)
         
         # 3. Simulation - random rollout from leaf
         result = rollout(leaf_board.copy(), self.player)
-        
+        value = (result + 1) / 2
+
         # 4. Backpropagation - update statistics along path
-        self.backpropagate(path, result)
+        self.backpropagate(path, value)
+    
+    def select_and_expand(self):
+        """
+        Perform one MCTS step: select a leaf, expand it, simulate a rollout, and backpropagate the result.
+        """
+        leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
         
+        # 2. Expansion - create children for the leaf
+        self.apply_virtual_loss(path)
+        self.expand_node(leaf_node, leaf_board)
+
+        return leaf_node, leaf_board, path
+
     def to_pandas(self):
         """
         Convert the node data to a pandas DataFrame for easier analysis.
@@ -218,5 +256,23 @@ class MCTSTree:
         child = self._get_child()
         visits = child[:, self.N_VISITS_COL] / sum(child[:, self.N_VISITS_COL])
         return value, visits
+
+    def _uct_score(self, child_idx, parent_visits):
+        wins = self.node_data[child_idx, self.WINS_COL]
+        visits = self.node_data[child_idx, self.N_VISITS_COL]
+        if visits == 0:
+            # Favor unexplored children
+            return 10e6
+        exploitation = wins / visits
+        exploration = self.exploration_factor * math.sqrt(math.log(parent_visits) / visits)
+        return exploitation + exploration
+    
+    def apply_virtual_loss(self, path, loss=0.1):
+        """
+        Apply a virtual loss to each node along the path.
+        """
+        self.node_data[path, self.N_VISITS_COL] += 1
+        # For example, subtract virtual loss from wins for the player's turn
+        self.node_data[path, self.WINS_COL] -= loss
 
 # TODO: test mcts_step better
