@@ -158,7 +158,7 @@ class MCTSTree:
         self.node_count += 1
         return new_node_idx
         
-    def backpropagate(self, path, result):
+    def backpropagate(self, path, value):
         """
         Backpropagate the result through the path using forward iteration.
         
@@ -170,13 +170,8 @@ class MCTSTree:
         # path is the first indexed element of the path_with_players list:
 
         self.node_data[path, self.N_VISITS_COL] += 1
-        if result == 0:
-            self.node_data[path, self.WINS_COL] += 0.5
-        elif result == self.player:
-            # only update even indexed nodes
-            self.node_data[path[1::2], self.WINS_COL] += 1
-        elif result == -self.player:
-            self.node_data[path[::2], self.WINS_COL] += 1
+        self.node_data[path[::2], self.WINS_COL] += value  # Update wins for player 1's turns
+        self.node_data[path[1::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
 
     def mcts_step(self):
         # 1. Selection - find leaf and track path
@@ -190,7 +185,18 @@ class MCTSTree:
         
         # 4. Backpropagation - update statistics along path
         self.backpropagate(path, result)
+    
+    def select_and_expand(self):
+        """
+        Perform one MCTS step: select a leaf, expand it, simulate a rollout, and backpropagate the result.
+        """
+        leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
         
+        # 2. Expansion - create children for the leaf
+        self.expand_node(leaf_node, leaf_board)
+
+        return leaf_node, leaf_board, path
+
     def to_pandas(self):
         """
         Convert the node data to a pandas DataFrame for easier analysis.
