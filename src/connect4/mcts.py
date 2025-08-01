@@ -74,7 +74,7 @@ class MCTSTree:
             child_key = (node_idx, col)
             if child_key in self.children_map:
                 child_idx = self.children_map[child_key]
-                score = self._uct_score(child_idx, parent_visits)
+                score = uct_score(self.node_data, child_idx, parent_visits, self.exploration_factor)
                 child_scores[col] = score
 
         if not child_scores:
@@ -208,16 +208,6 @@ class MCTSTree:
         visits = child[:, self.N_VISITS_COL] / sum(child[:, self.N_VISITS_COL])
         return value, visits
 
-    def _uct_score(self, child_idx, parent_visits):
-        wins = self.node_data[child_idx, self.WINS_COL]
-        visits = self.node_data[child_idx, self.N_VISITS_COL]
-        if visits == 0:
-            # Favor unexplored children
-            return 10e6
-        exploitation = wins / visits
-        exploration = self.exploration_factor * math.sqrt(math.log(parent_visits) / visits)
-        return exploitation + exploration
-    
     def apply_virtual_loss(self, path, loss=0.1):
         """
         Apply a virtual loss to each node along the path.
@@ -273,3 +263,29 @@ def weighted_sample(child_scores: dict) -> int:
     if len(candidates) > 1:
         return random.choice(candidates)
     return candidates[0]
+
+
+def uct_score(node_data, child_idx, parent_visits, exploration_factor):
+    """
+    Calculate the UCT (Upper Confidence Bound applied to Trees) score for a child node.
+    
+    Args:
+        node_data (np.ndarray): Array containing node statistics
+        child_idx (int): Index of the child node
+        parent_visits (int): Number of visits to the parent node
+        exploration_factor (float): Exploration constant (typically sqrt(2))
+        
+    Returns:
+        float: UCT score for the child node
+    """
+    WINS_COL = 3
+    N_VISITS_COL = 2
+    
+    wins = node_data[child_idx, WINS_COL]
+    visits = node_data[child_idx, N_VISITS_COL]
+    if visits == 0:
+        # Favor unexplored children
+        return 10e6
+    exploitation = wins / visits
+    exploration = exploration_factor * math.sqrt(math.log(parent_visits) / visits)
+    return exploitation + exploration
