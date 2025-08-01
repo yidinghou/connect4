@@ -5,34 +5,6 @@ import numpy as np
 import random
 import math
 
-def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
-    """
-    Perform a random rollout from the current board state.
-
-    Args:
-        board_arr (np.ndarray): The current board state.
-        player (int): The player to make the first move in the rollout.
-
-    Returns:
-        int: The result of the rollout (1 for player 1 win, -1 for player 2 win, 0 for draw).
-    """
-    is_terminal, result = board.check_board_state(board_arr)
-    while not is_terminal:
-        legal_moves = board.get_legal_moves(board_arr)
-        col, row = random.choice(list(legal_moves.items()))
-
-        board_arr = board.add_move(board_arr, player=player, loc=(row, col))
-        if debug:
-            print(board_arr)
-            print(f"Player {player} added move at ({row}, {col})")
-            assert board.check_valid_board(board_arr)
-
-        is_terminal, result = board.check_board_state_incremental(
-            board_arr, row, col, player
-        )
-        player *= -1
-
-    return result
 
 class MCTSTree:
     def __init__(self, root_board, player=1, iterations=10, exploration_factor=math.sqrt(2)):
@@ -55,7 +27,6 @@ class MCTSTree:
         self.node_data[0, self.ACTION_COL] = -1 
         self.node_count = 1
         self.exploration_factor = exploration_factor
-
 
     def select_leaf(self, node_idx, node_board):
         """
@@ -116,7 +87,6 @@ class MCTSTree:
         child_idx = self.children_map[(node_idx, selected_col)]
         
         return child_idx, new_board_state, -player
-
 
     def weighted_sample(self, child_scores: dict) -> int:
         """
@@ -275,4 +245,31 @@ class MCTSTree:
         # For example, subtract virtual loss from wins for the player's turn
         self.node_data[path, self.WINS_COL] -= loss
 
-# TODO: test mcts_step better
+def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
+    """
+    Perform a random rollout from the current board state.
+
+    Args:
+        board_arr (np.ndarray): The current board state.
+        player (int): The player to make the first move in the rollout.
+
+    Returns:
+        int: The result of the rollout (1 for player 1 win, -1 for player 2 win, 0 for draw).
+    """
+    is_terminal, result = board.check_board_state(board_arr)
+    while not is_terminal:
+        legal_moves = board.get_legal_moves(board_arr)
+        col, row = random.choice(list(legal_moves.items()))
+
+        board_arr = board.add_move(board_arr, player=player, loc=(row, col))
+        if debug:
+            print(board_arr)
+            print(f"Player {player} added move at ({row}, {col})")
+            assert board.check_valid_board(board_arr)
+
+        is_terminal, result = board.check_board_state_incremental(
+            board_arr, row, col, player
+        )
+        player *= -1
+
+    return result
