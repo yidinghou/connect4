@@ -120,21 +120,22 @@ class MCTSTree:
 
     def weighted_sample(self, child_scores: dict) -> int:
         """
-        Sample a key from child_scores with probability proportional to softmax(score).
-
+        If multiple actions share the maximum UCT score, choose one uniformly at random.
+        Otherwise, return the unique max.
+        
         Args:
             child_scores (dict): mapping of action column -> score
 
         Returns:
             int: a selected column
         """
-        import numpy as np
-        keys = list(child_scores.keys())
-        scores = np.array([child_scores[k] for k in keys])
-        # subtract max for numerical stability
-        exp_scores = np.exp(scores - np.max(scores))
-        probs = exp_scores / exp_scores.sum()
-        return np.random.choice(keys, p=probs)
+        import random
+        max_score = max(child_scores.values())
+        # Using a tolerance if scores are floats:
+        candidates = [col for col, score in child_scores.items() if abs(score - max_score) < 1e-8]
+        if len(candidates) > 1:
+            return random.choice(candidates)
+        return candidates[0]
 
     def expand_node(self, node_idx, board_state):
         """
@@ -197,7 +198,7 @@ class MCTSTree:
          
         # path is the first indexed element of the path_with_players list:
 
-        self.node_data[path, self.N_VISITS_COL] += 1
+        # self.node_data[path, self.N_VISITS_COL] += 1
         self.node_data[path[1::2], self.WINS_COL] += value  # Update wins for player 1's turns
         self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
 
@@ -222,6 +223,7 @@ class MCTSTree:
         leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
         
         # 2. Expansion - create children for the leaf
+        self.apply_virtual_loss(path)
         self.expand_node(leaf_node, leaf_board)
 
         return leaf_node, leaf_board, path
@@ -263,4 +265,13 @@ class MCTSTree:
         exploitation = wins / visits
         exploration = self.exploration_factor * math.sqrt(math.log(parent_visits) / visits)
         return exploitation + exploration
+    
+    def apply_virtual_loss(self, path, loss=0.1):
+        """
+        Apply a virtual loss to each node along the path.
+        """
+        self.node_data[path, self.N_VISITS_COL] += 1
+        # For example, subtract virtual loss from wins for the player's turn
+        self.node_data[path, self.WINS_COL] -= loss
+
 # TODO: test mcts_step better
