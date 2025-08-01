@@ -77,7 +77,7 @@ total_select_expand_time = 0
 total_scoring_time = 0
 
 for i in range(N):
-    if i > 0 and i % 100 == 0:
+    if i > 0 and i % 100  == 0:
         # Progress update every 100 iterations, skip first
         print(f"Sequential MCTS: {i}/{N} steps completed")
         print("Scoring NN...")
