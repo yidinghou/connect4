@@ -139,12 +139,11 @@ class MCTSTree:
         self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
 
     def mcts_step(self):
-        # 1. Selection - find leaf and track path
-        leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
-        self.apply_virtual_loss(path)
-        
-        # 2. Expansion - create children for the leaf
-        self.expand_node(leaf_node, leaf_board)
+        """
+        Perform one complete MCTS iteration: select, expand, simulate, and backpropagate.
+        """
+        # 1 & 2. Selection and Expansion (with virtual loss)
+        leaf_node, leaf_board, path = self.select_and_expand()
         
         # 3. Simulation - random rollout from leaf
         result = rollout(leaf_board.copy(), self.player)
@@ -155,11 +154,14 @@ class MCTSTree:
     
     def select_and_expand(self):
         """
-        Perform one MCTS step: select a leaf, expand it, simulate a rollout, and backpropagate the result.
+        Select a leaf node and expand it. Used for batching simulations.
+        
+        Returns:
+            tuple: (leaf_node_idx, leaf_board_state, path)
         """
         leaf_node, leaf_board, path = self.select_leaf(0, self.root_board)
         
-        # 2. Expansion - create children for the leaf
+        # Apply virtual loss and expand
         self.apply_virtual_loss(path)
         self.expand_node(leaf_node, leaf_board)
 
