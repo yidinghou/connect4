@@ -110,12 +110,31 @@ class MCTSTree:
             raise ValueError(f"Node {node_idx} is marked expanded but has no children")
 
         # Select column with highest UCT score
-        selected_col = max(child_scores, key=child_scores.get)
+        selected_col = self.weighted_sample(child_scores)
         row = legal_moves[selected_col]
         new_board_state = board.add_move(board_state, player, (row, selected_col))
         child_idx = self.children_map[(node_idx, selected_col)]
         
         return child_idx, new_board_state, -player
+
+
+    def weighted_sample(self, child_scores: dict) -> int:
+        """
+        Sample a key from child_scores with probability proportional to softmax(score).
+
+        Args:
+            child_scores (dict): mapping of action column -> score
+
+        Returns:
+            int: a selected column
+        """
+        import numpy as np
+        keys = list(child_scores.keys())
+        scores = np.array([child_scores[k] for k in keys])
+        # subtract max for numerical stability
+        exp_scores = np.exp(scores - np.max(scores))
+        probs = exp_scores / exp_scores.sum()
+        return np.random.choice(keys, p=probs)
 
     def expand_node(self, node_idx, board_state):
         """
