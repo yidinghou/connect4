@@ -202,3 +202,12 @@ def check_board_state_incremental(board_arr: np.ndarray, row: int, col: int, pla
         return True, 0
     else:
         return False, None
+    
+def pretty_print(board_state: np.ndarray):
+    """
+    prints the board_state replacing 1 with X, -1 with 0 and 0 with .
+    Each row is a new line
+    """
+    int_to_char = {1: 'X', -1: '0', 0: '.'}
+    for row in board_state:
+        print(' '.join([int_to_char[cell] for cell in row]))
