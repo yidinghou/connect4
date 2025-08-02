@@ -123,7 +123,7 @@ def check_incremental_win(board_arr: np.ndarray, row: int, col: int, player: int
     return False  # No win found in the local region
 
 
-def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]:
+def get_legal_moves(board_arr: np.ndarray) -> dict[int, int]: #TODO no legal moves if terminal state
     """
     Returns a dictionary of legal moves for a Connect 4 board.
     The key is the column index, and the value is the row index of the next available spot.
@@ -202,3 +202,12 @@ def check_board_state_incremental(board_arr: np.ndarray, row: int, col: int, pla
         return True, 0
     else:
         return False, None
+    
+def pretty_print(board_state: np.ndarray):
+    """
+    prints the board_state replacing 1 with X, -1 with 0 and 0 with .
+    Each row is a new line
+    """
+    int_to_char = {1: 'X', -1: '0', 0: '.'}
+    for row in board_state:
+        print(' '.join([int_to_char[cell] for cell in row]))
