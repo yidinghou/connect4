@@ -198,6 +198,7 @@ class MCTSTree:
         """
         # root children are when parent_idx is 0 and 
         root_children = self.node_data[:10]
+        root_children = root_children[~np.all(root_children == 0, axis=1)]
         root_children = root_children[root_children[:, PARENT_COL]==0]
         wins = root_children[:, WINS_COL] / root_children[:, N_VISITS_COL]
         best_child = root_children[np.argmax(wins), ACTION_COL]
