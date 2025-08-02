@@ -126,17 +126,19 @@ class MCTSTree:
     def backpropagate(self, path, value):
         """
         Backpropagate the result through the path using forward iteration.
-        
+
         Args:
             path (list): List of node indices from root to leaf
-            result (int): Game result (1 for player 1 win, -1 for player 2 win, 0 for draw)
+            result (int): Game result (1 for player 1 win, -1 for player 2 win,
         """
-         
-        # path is the first indexed element of the path_with_players list:
 
-        # self.node_data[path, self.N_VISITS_COL] += 1
-        self.node_data[path[1::2], WINS_COL] += value  # Update wins for player 1's turns
-        self.node_data[path[::2], WINS_COL] += (1-value)  # Update wins for player 2's turns
+        # If root player is -1, flip the initial pattern       fix back prop log
+        if self.player == -1:
+            self.node_data[path[::2], WINS_COL] += value     # P2's turns
+            self.node_data[path[1::2], WINS_COL] += (1-value) # P1's turns
+        else:
+            self.node_data[path[1::2], WINS_COL] += value     # P1's turns
+            self.node_data[path[::2], WINS_COL] += (1-value) # P2's turns
 
     def _create_new_node(self, parent_idx, action_col):
         """
@@ -186,6 +188,20 @@ class MCTSTree:
             "parent_idx", "action_col", "n_visits", "wins", "prior", "expanded"
         ]
         return pd.DataFrame(self.node_data, columns=columns)
+
+    def select_best_child(self):
+        """
+        Select the child with the highest visit count from the root node.
+
+        Returns:
+            int: Column index of the best child action
+        """
+        # root children are when parent_idx is 0 and 
+        root_children = self.node_data[:10]
+        root_children = root_children[root_children[:, PARENT_COL]==0]
+        wins = root_children[:, WINS_COL] / root_children[:, N_VISITS_COL]
+        best_child = root_children[np.argmax(wins), ACTION_COL]
+        return best_child
 
 def rollout(board_arr: np.ndarray, player: int, debug=False) -> int:
     """
