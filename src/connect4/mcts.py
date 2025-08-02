@@ -5,6 +5,13 @@ import numpy as np
 import random
 import math
 
+global PARENT_COL, ACTION_COL, N_VISITS_COL, WINS_COL, PRIOR_COL, EXPANDED_COL
+PARENT_COL = 0
+ACTION_COL = 1
+N_VISITS_COL = 2
+WINS_COL = 3
+PRIOR_COL = 4
+EXPANDED_COL = 5
 
 class MCTSTree:
     def __init__(self, root_board, player=1, iterations=10, exploration_factor=math.sqrt(2)):
@@ -15,16 +22,8 @@ class MCTSTree:
         data_size = iterations * 7 + 1  # Each iteration can have up to 7 children (one for each column), adding 1 for the root node
         self.node_data = np.zeros((data_size, 6), dtype=float)
 
-        # 6 data elements: parent_idx, action_idx, n_visits, wins, prior, expanded
-        self.PARENT_COL = 0
-        self.ACTION_COL = 1
-        self.N_VISITS_COL = 2
-        self.WINS_COL = 3
-        self.PRIOR_COL = 4
-        self.EXPANDED_COL = 5
-
-        self.node_data[0, self.PARENT_COL]=-1
-        self.node_data[0, self.ACTION_COL] = -1 
+        self.node_data[0, PARENT_COL] = -1
+        self.node_data[0, ACTION_COL] = -1 
         self.node_count = 1
         self.exploration_factor = exploration_factor
 
@@ -74,14 +73,14 @@ class MCTSTree:
         path = [current_node]
 
         # Keep traversing until we find a leaf
-        while self.node_data[current_node, self.EXPANDED_COL] == 1:
+        while self.node_data[current_node, EXPANDED_COL] == 1:
             legal_moves = board.get_legal_moves(current_board)
             if not legal_moves:
                 break  # Terminal node
             
             # Gather children and corresponding UCT scores
             child_scores = {}
-            parent_visits = self.node_data[current_node, self.N_VISITS_COL]
+            parent_visits = self.node_data[current_node, N_VISITS_COL]
             for col in legal_moves.keys():
                 child_key = (current_node, col)
                 if child_key in self.children_map:
@@ -122,7 +121,7 @@ class MCTSTree:
                 self._create_new_node(node_idx, col)
         
         # Mark this node as expanded
-        self.node_data[node_idx, self.EXPANDED_COL] = 1
+        self.node_data[node_idx, EXPANDED_COL] = 1
         
     def backpropagate(self, path, value):
         """
@@ -136,8 +135,8 @@ class MCTSTree:
         # path is the first indexed element of the path_with_players list:
 
         # self.node_data[path, self.N_VISITS_COL] += 1
-        self.node_data[path[1::2], self.WINS_COL] += value  # Update wins for player 1's turns
-        self.node_data[path[::2], self.WINS_COL] += (1-value)  # Update wins for player 2's turns
+        self.node_data[path[1::2], WINS_COL] += value  # Update wins for player 1's turns
+        self.node_data[path[::2], WINS_COL] += (1-value)  # Update wins for player 2's turns
 
     def _create_new_node(self, parent_idx, action_col):
         """
@@ -155,12 +154,12 @@ class MCTSTree:
         self.children_map[(parent_idx, action_col)] = new_node_idx
 
         # Initialize node data
-        self.node_data[new_node_idx, self.PARENT_COL] = parent_idx
-        self.node_data[new_node_idx, self.ACTION_COL] = action_col
-        self.node_data[new_node_idx, self.N_VISITS_COL] = 0
-        self.node_data[new_node_idx, self.WINS_COL] = 0
-        self.node_data[new_node_idx, self.PRIOR_COL] = 0
-        self.node_data[new_node_idx, self.EXPANDED_COL] = (
+        self.node_data[new_node_idx, PARENT_COL] = parent_idx
+        self.node_data[new_node_idx, ACTION_COL] = action_col
+        self.node_data[new_node_idx, N_VISITS_COL] = 0
+        self.node_data[new_node_idx, WINS_COL] = 0
+        self.node_data[new_node_idx, PRIOR_COL] = 0
+        self.node_data[new_node_idx, EXPANDED_COL] = (
             0  # New nodes start unexpanded
         )
 
@@ -171,9 +170,9 @@ class MCTSTree:
         """
         Apply a virtual loss to each node along the path.
         """
-        self.node_data[path, self.N_VISITS_COL] += 1
+        self.node_data[path, N_VISITS_COL] += 1
         # For example, subtract virtual loss from wins for the player's turn
-        self.node_data[path, self.WINS_COL] -= loss
+        self.node_data[path, WINS_COL] -= loss
 
     def to_pandas(self):
         """
@@ -250,9 +249,6 @@ def uct_score(node_data, child_idx, parent_visits, exploration_factor):
     Returns:
         float: UCT score for the child node
     """
-    WINS_COL = 3
-    N_VISITS_COL = 2
-    
     wins = node_data[child_idx, WINS_COL]
     visits = node_data[child_idx, N_VISITS_COL]
     if visits == 0:
